@@ -9,8 +9,17 @@ Estructura de `codigo/src/main/java/co/ucaldas/tienda/`:
 
 ## Muestra de la Hoja 1 (arranque limpio)
 
-    cd codigo && mvn -q -DskipTests compile
+El almacenamiento es el archivo `pedidos.jsonl` del directorio desde el que se corre; arranque limpio es borrarlo antes.
+
+    cd codigo && mvn -q -DskipTests compile && rm -f pedidos.jsonl
     java -cp target/classes co.ucaldas.tienda.muestra.MuestraHoja1
+
+## Muestra de la Hoja 2 (Q3, datos en archivo), dos corridas en el mismo directorio
+
+El archivo se borra antes de la corrida 1 y no entre las dos corridas. Se corre desde `codigo/` después de compilar.
+
+    rm -f pedidos.jsonl && java -cp target/classes co.ucaldas.tienda.muestra.MuestraQ3Corrida1
+    java -cp target/classes co.ucaldas.tienda.muestra.MuestraQ3Corrida2
 
 ## Pruebas y regla de arquitectura
 

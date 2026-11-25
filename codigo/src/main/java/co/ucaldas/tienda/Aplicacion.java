@@ -1,11 +1,13 @@
 package co.ucaldas.tienda;
 
 import co.ucaldas.tienda.adapter.in.ConsolaPedidos;
-import co.ucaldas.tienda.adapter.out.RepositorioEnMemoria;
+import co.ucaldas.tienda.adapter.out.RepositorioArchivoJsonl;
 import co.ucaldas.tienda.application.ServicioPedidos;
 import co.ucaldas.tienda.application.port.in.GestionPedidos;
 import co.ucaldas.tienda.application.port.out.RepositorioTienda;
 import co.ucaldas.tienda.domain.Producto;
+
+import java.nio.file.Paths;
 
 /**
  * Punto de composición: el único lugar que conoce los adaptadores concretos.
@@ -19,7 +21,7 @@ public final class Aplicacion {
     }
 
     public static ConsolaPedidos crearConsola() {
-        RepositorioTienda repositorio = new RepositorioEnMemoria(TECLADO);
+        RepositorioTienda repositorio = new RepositorioArchivoJsonl(Paths.get("pedidos.jsonl"), TECLADO);
         GestionPedidos pedidos = new ServicioPedidos(repositorio);
         return new ConsolaPedidos(pedidos);
     }
