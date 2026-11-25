@@ -1,0 +1,82 @@
+
+==== 1. Regla de arquitectura pasando (etiqueta final) ====
+$ java -cp <clases:junit> org.junit.runner.JUnitCore co.ucaldas.tienda.ReglaArquitecturaTest   # equivale a: mvn -q test -Dtest=ReglaArquitecturaTest
+JUnit version 4.13.2
+..
+Time: 0.017
+
+OK (2 tests)
+
+
+====    grep documentado (sin coincidencias, no imprime nada) ====
+$ grep -rnE "^import (org\.springframework|jakarta|co\.ucaldas\.tienda\.(application|adapter))" src/main/java/co/ucaldas/tienda/domain
+(código de salida del grep: 1; 1 = sin coincidencias)
+
+==== 2. Violación inducida: se agrega a domain/Producto.java un import del adaptador (sin commit) ====
+$ sed -i '3i import co.ucaldas.tienda.adapter.out.RepositorioEnMemoria;' src/main/java/co/ucaldas/tienda/domain/Producto.java
+
+====    la misma regla, con la violación presente ====
+$ java -cp <clases:junit> org.junit.runner.JUnitCore co.ucaldas.tienda.ReglaArquitecturaTest
+JUnit version 4.13.2
+.E.
+Time: 0.023
+There was 1 failure:
+1) elDominioNoDependeDeNadaDeAfuera(co.ucaldas.tienda.ReglaArquitecturaTest)
+java.lang.AssertionError: domain importa lo que no debe: [Producto.java -> import co.ucaldas.tienda.adapter.out.RepositorioEnMemoria;]
+	at co.ucaldas.tienda.ReglaArquitecturaTest.elDominioNoDependeDeNadaDeAfuera(ReglaArquitecturaTest.java:29)
+
+FAILURES!!!
+Tests run: 2,  Failures: 1
+
+
+====    el grep, con la violación presente ====
+$ grep -rnE "^import (org\.springframework|jakarta|co\.ucaldas\.tienda\.(application|adapter))" src/main/java/co/ucaldas/tienda/domain
+src/main/java/co/ucaldas/tienda/domain/Producto.java:3:import co.ucaldas.tienda.adapter.out.RepositorioEnMemoria;
+
+====    se revierte la violación ====
+$ git checkout -- codigo/src/main/java/co/ucaldas/tienda/domain/Producto.java && git status --short codigo
+(sin cambios pendientes en codigo/: árbol limpio)
+
+==== 3. Muestra de la Hoja 1 (etiqueta hoja-1, arranque limpio) ====
+$ cd codigo && mvn -q -DskipTests compile && java -cp target/classes co.ucaldas.tienda.muestra.MuestraHoja1   # compilado con javac sobre el worktree de hoja-1
+PEDIDO 1 CONFIRMADO total=360000
+PEDIDO 2 CONFIRMADO total=441600
+PEDIDO 3 RECHAZADO total=0
+PEDIDO 4 CONFIRMADO total=2539200
+
+==== 4. Muestra de la Hoja 2, Q3 (etiqueta final): corrida 1, arranque limpio ====
+$ rm -f pedidos.jsonl && java -cp target/classes co.ucaldas.tienda.muestra.MuestraQ3Corrida1
+PEDIDO 1 CONFIRMADO total=360000
+
+====    corrida 2 (después de reiniciar, mismo directorio) ====
+$ java -cp target/classes co.ucaldas.tienda.muestra.MuestraQ3Corrida2
+PEDIDO 1 CONFIRMADO total=360000
+PEDIDO 2 RECHAZADO total=0
+PEDIDO 3 CONFIRMADO total=2980800
+
+====    contenido de pedidos.jsonl ====
+$ cat pedidos.jsonl
+{"id":1,"clienteId":"C-001","productoId":1,"cantidad":3,"estado":"CONFIRMADO","total":360000,"stockConsumido":3}
+{"id":2,"clienteId":"C-002","productoId":1,"cantidad":28,"estado":"RECHAZADO","total":0,"stockConsumido":0}
+{"id":3,"clienteId":"C-003","productoId":1,"cantidad":27,"estado":"CONFIRMADO","total":2980800,"stockConsumido":27}
+
+==== 5. Cambio medido ====
+$ git diff --name-status hoja-1 final
+M	LEEME.md
+M	codigo/src/main/java/co/ucaldas/tienda/Aplicacion.java
+A	codigo/src/main/java/co/ucaldas/tienda/adapter/out/RepositorioArchivoJsonl.java
+A	codigo/src/main/java/co/ucaldas/tienda/muestra/MuestraQ3Corrida1.java
+A	codigo/src/main/java/co/ucaldas/tienda/muestra/MuestraQ3Corrida2.java
+A	codigo/src/test/java/co/ucaldas/tienda/RepositorioArchivoJsonlTest.java
+
+
+==== 6. Historial ====
+$ git log --format="%h %ad %an%d %s" --date=iso
+e356861 2026-11-24 21:06:29 -0500 Gustavo Adolfo Marin Muñoz (HEAD -> main) ADR-0002: decision y veredicto del cambio Q3
+a6b977c 2026-11-24 21:05:07 -0500 Juan Camilo Ramirez (tag: final) Hoja 2 (Q3): composicion con el adaptador de archivo y muestras de dos corridas
+86f8757 2026-11-24 21:05:06 -0500 Gustavo Adolfo Marin Muñoz Hoja 2 (Q3): adaptador de archivo pedidos.jsonl y su prueba
+54e8e29 2026-11-24 21:04:22 -0500 Juan Camilo Ramirez (tag: hoja-1) Hoja 1: pruebas de RN-1 a RN-5 y regla de arquitectura
+0bc2e9d 2026-11-24 21:04:22 -0500 Gustavo Adolfo Marin Muñoz Hoja 1: adaptadores en memoria y consola, composicion y muestra
+8eb372f 2026-11-24 21:04:22 -0500 Juan Camilo Ramirez Hoja 1: puertos y ServicioPedidos
+6398a55 2026-11-24 21:04:22 -0500 Gustavo Adolfo Marin Muñoz Hoja 1: dominio (Producto, Pedido, CalculadoraDeTotal) y pom
+67a4acf 2026-11-24 21:03:19 -0500 Juan Camilo Ramirez ADR-0001: elegir hexagonal para Q3/fila 2 con prediccion del costo
